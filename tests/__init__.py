@@ -1,0 +1,1 @@
+"""Astroeasy test suite."""
