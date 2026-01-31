@@ -1,5 +1,7 @@
 # astroeasy
 
+![Tests](tests.svg) ![Coverage](coverage.svg)
+
 Astrometry.net made easy - a standalone Python package for plate-solving with containerized execution, clean API, and indices management.
 
 ## Installation
