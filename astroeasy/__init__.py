@@ -21,6 +21,8 @@ Example:
     ...     print(f"Solved! Center: {result.wcs.center_ra}, {result.wcs.center_dec}")
 """
 
+from importlib.metadata import version
+
 from astroeasy.config import AstrometryConfig
 from astroeasy.constants import AstrometryIndexSeries
 from astroeasy.indices import download_indices, examine_indices
@@ -33,6 +35,8 @@ from astroeasy.models import (
     WCSStatus,
 )
 from astroeasy.runner import solve_field, test_install
+
+__version__ = version("astroeasy")
 
 __all__ = [
     # Configuration
@@ -52,5 +56,3 @@ __all__ = [
     "examine_indices",
     "download_indices",
 ]
-
-__version__ = "0.2.0"
