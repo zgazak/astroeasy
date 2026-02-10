@@ -171,7 +171,6 @@ def plot_solved_field(
         ext = output_path.suffix.lower()
         if ext in [".jpg", ".jpeg"]:
             save_kwargs["format"] = "jpeg"
-            save_kwargs["quality"] = 95
         elif ext == ".png":
             save_kwargs["format"] = "png"
 
