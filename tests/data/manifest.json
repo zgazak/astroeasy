@@ -1,0 +1,14 @@
+{
+  "release_tag": "test-data-v1",
+  "repo": "zgazak/astroeasy",
+  "files": [
+    {
+      "name": "example_data.fits",
+      "sha256": "408c1ff42cd061a3d74eb2e974ed21854764ac17c76b61395bce3eed8a408a0f"
+    },
+    {
+      "name": "x_y_counts_1024_1024.txt",
+      "sha256": "57733e1d62eb3ba4784b7c1be9202c958fcd23277c00ce25271411486810dbd2"
+    }
+  ]
+}

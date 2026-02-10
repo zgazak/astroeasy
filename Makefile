@@ -1,7 +1,7 @@
 # Astroeasy Makefile
 # Common development commands
 
-.PHONY: help install install-dev test coverage lint format build build-docker clean
+.PHONY: help install install-dev test coverage lint format build build-docker clean fetch-test-data upload-test-data
 
 # Use uv run to ensure we're using the virtual environment
 PYTHON := uv run python
@@ -19,6 +19,10 @@ help:
 	@echo "  build-docker  - Build astrometry-cli Docker image"
 	@echo "  clean         - Remove build artifacts"
 	@echo ""
+	@echo "Test data:"
+	@echo "  fetch-test-data      - Download test data from GitHub release"
+	@echo "  upload-test-data     - Upload test data to GitHub release (maintainers)"
+	@echo ""
 	@echo "Index management:"
 	@echo "  indices-download SERIES=5200_LITE OUTPUT=/path       - Download indices"
 	@echo "  indices-examine  SERIES=5200_LITE INDEX_PATH=/path   - Examine indices"
@@ -34,11 +38,18 @@ install:
 install-dev:
 	uv pip install -e ".[dev]"
 
+# Test data management
+fetch-test-data:
+	@$(PYTHON) scripts/fetch_test_data.py
+
+upload-test-data:
+	@$(PYTHON) scripts/upload_test_data.py
+
 # Testing
-test:
+test: fetch-test-data
 	uv run pytest tests/ -v
 
-coverage:
+coverage: fetch-test-data
 	uv run pytest tests/ -v \
     	--junitxml=reports/junit/junit.xml \
 		--cov=astroeasy \
