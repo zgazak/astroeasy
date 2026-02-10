@@ -36,11 +36,10 @@ install-dev:
 
 # Testing
 test:
-	pytest tests/ -v
-	uv run genbadge tests -o tests.svg
+	uv run pytest tests/ -v
 
 coverage:
-	pytest tests/ -v \
+	uv run pytest tests/ -v \
     	--junitxml=reports/junit/junit.xml \
 		--cov=astroeasy \
 		--cov-report=term-missing \
@@ -56,11 +55,11 @@ badges: coverage
 
 # Code quality
 lint:
-	ruff check astroeasy/
+	uv run ruff check astroeasy/
 
 format:
-	ruff format astroeasy/
-	ruff check --fix astroeasy/
+	uv run ruff format astroeasy/
+	uv run ruff check --fix astroeasy/
 
 # Build
 build:
