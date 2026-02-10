@@ -8,6 +8,7 @@ git clone https://github.com/zgazak/astroeasy.git
 cd astroeasy
 
 # Install with dev dependencies
+uv sync
 uv pip install -e ".[dev]"
 
 # Fetch test data (required before running tests)
