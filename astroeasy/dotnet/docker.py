@@ -42,6 +42,8 @@ def run_against_container(
 
     r1 = None
     if solve_field_command:
+        logger.debug(f"[run_against_container] command: {solve_field_command}")
+
         # Run the solve-field command
         r1 = subprocess.run(
             base_docker_command + solve_field_command.split(),
@@ -49,13 +51,28 @@ def run_against_container(
             text=True,
         )
 
-        successful_fit = (run_directory / "sources.match").exists()
+        # Log stdout/stderr for debugging
+        if r1.stdout:
+            for line in r1.stdout.strip().split("\n")[-10:]:  # Last 10 lines
+                logger.debug(f"[solve-field stdout] {line}")
+        if r1.stderr:
+            for line in r1.stderr.strip().split("\n")[-10:]:  # Last 10 lines
+                logger.debug(f"[solve-field stderr] {line}")
+
+        # Check for .match file (sources.match or image.match)
+        match_files = list(run_directory.glob("*.match"))
+        successful_fit = len(match_files) > 0
         logger.info(
-            f"{'[success]' if successful_fit else '[failed]'} [run_against_container]"
+            f"{'✅' if successful_fit else '❌'} [run_against_container] successful_fit: {successful_fit}"
         )
+
+        if not successful_fit:
+            # Log what files were created for debugging
+            files = list(run_directory.iterdir())
+            logger.debug(f"[run_against_container] files: {[f.name for f in files]}")
     else:
         logger.info("No solve-field command provided, checking for existing WCS")
-        successful_fit = (run_directory / "sources.wcs").exists()
+        successful_fit = len(list(run_directory.glob("*.wcs"))) > 0
 
     # Store astrometry logs if output_dir is provided
     if output_dir and r1 is not None:

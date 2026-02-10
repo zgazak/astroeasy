@@ -114,7 +114,9 @@ def download_fits_files(
 
             with urlopen(url) as response:
                 with open(filename, "wb") as f:
-                    with tqdm(total=file_size, unit="B", unit_scale=True, desc=filename, leave=False) as pbar:
+                    with tqdm(
+                        total=file_size, unit="B", unit_scale=True, desc=filename, leave=False
+                    ) as pbar:
                         while True:
                             chunk = response.read(8192)
                             if not chunk:
@@ -204,11 +206,15 @@ def examine_by_path_and_structure(
     complete_set = len(size_mismatch_indices) + len(missing_indices) == 0
 
     if complete_set:
-        logger.info(f"[{series}] Astrometry indices [{series}] are complete and valid [{indices_path}]")
+        logger.info(
+            f"[{series}] Astrometry indices [{series}] are complete and valid [{indices_path}]"
+        )
         return True
 
     if len(size_mismatch_indices) > 0:
-        logger.warning(f"[{series}] Astrometry indices size mismatch for {', '.join(size_mismatch_indices)}")
+        logger.warning(
+            f"[{series}] Astrometry indices size mismatch for {', '.join(size_mismatch_indices)}"
+        )
     if len(missing_indices) > 0:
         logger.warning(f"[{series}] Astrometry indices missing: {', '.join(missing_indices)}")
 
@@ -246,7 +252,9 @@ def pare_5200_to_SENPAI(
         logger.info("5200_SENPAI series already exists.")
         return
 
-    source_indices_good = examine_by_path_and_structure(series, indices_path, ASTROMETRY_5200_EXPECTED_STRUCTURE)
+    source_indices_good = examine_by_path_and_structure(
+        series, indices_path, ASTROMETRY_5200_EXPECTED_STRUCTURE
+    )
 
     if not source_indices_good:
         raise ValueError("Source indices are not valid")
@@ -268,7 +276,10 @@ def pare_5200_to_SENPAI(
         output_file_path = output_path / index_file
 
         if output_file_path.exists():
-            if os.path.getsize(output_file_path) == ASTROMETRY_5200_SENPAI_EXPECTED_STRUCTURE[index_file]:
+            if (
+                os.path.getsize(output_file_path)
+                == ASTROMETRY_5200_SENPAI_EXPECTED_STRUCTURE[index_file]
+            ):
                 logger.info(f"[{index_file}] already exists and is valid")
                 continue
 
@@ -276,7 +287,9 @@ def pare_5200_to_SENPAI(
             catalog_hdu = hdul[catalog_hdu_num]
 
             # Create a new table with only the columns we want to keep
-            new_data = fits.BinTableHDU.from_columns([catalog_hdu.data.columns[col] for col in columns_to_keep])
+            new_data = fits.BinTableHDU.from_columns(
+                [catalog_hdu.data.columns[col] for col in columns_to_keep]
+            )
             new_data.header["AN_FILE"] = "TAGALONG"
 
             hdul[catalog_hdu_num] = new_data
@@ -305,7 +318,9 @@ def pare_5200_to_SENPAI(
             f"from {human_readable_size(total_original_size)} to {human_readable_size(total_new_size)}"
         )
 
-    examine_by_path_and_structure("5200-SENPAI", output_path, ASTROMETRY_5200_SENPAI_EXPECTED_STRUCTURE)
+    examine_by_path_and_structure(
+        "5200-SENPAI", output_path, ASTROMETRY_5200_SENPAI_EXPECTED_STRUCTURE
+    )
 
 
 def get_expected_structure(
@@ -336,7 +351,9 @@ def get_expected_structure(
         expected_structure = ASTROMETRY_4200_EXPECTED_STRUCTURE
     elif series == AstrometryIndexSeries.SERIES_5200_LITE_4100:
         base_urls = [ASTROMETRY_INDICES_URL_5200_LITE, ASTROMETRY_INDICES_URL_4100]
-        expected_structure = ASTROMETRY_5200_LITE_EXPECTED_STRUCTURE | ASTROMETRY_4100_EXPECTED_STRUCTURE
+        expected_structure = (
+            ASTROMETRY_5200_LITE_EXPECTED_STRUCTURE | ASTROMETRY_4100_EXPECTED_STRUCTURE
+        )
     elif series == AstrometryIndexSeries.SERIES_CUSTOM:
         base_urls = []
         expected_structure = {}

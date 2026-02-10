@@ -3,7 +3,7 @@ name = "astroeasy"
 authors = [
   { name="Zach", email="jzg@alum.mit.edu" },
 ]
-version = "0.2.0"
+version = "1.0.14"
 description = "Astrometry.net made easy - plate solving and index management"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,9 +26,13 @@ dependencies = [
     "numpy>=1.20",
     "pyyaml>=6.0",
     "tqdm>=4.0",
+    "matplotlib>=3.5",
 ]
 
 [project.optional-dependencies]
+catalog = [
+    "astroquery>=0.4",
+]
 dev = [
     "build>=1.4.0",
     "twine>=6.2.0",

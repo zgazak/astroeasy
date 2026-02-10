@@ -15,7 +15,9 @@ class AstrometryIndexSeries(str, Enum):
 
 
 ASTROMETRY_INDICES_URL_5200 = "https://portal.nersc.gov/project/cosmo/temp/dstn/index-5200/"
-ASTROMETRY_INDICES_URL_5200_LITE = "https://portal.nersc.gov/project/cosmo/temp/dstn/index-5200/LITE/"
+ASTROMETRY_INDICES_URL_5200_LITE = (
+    "https://portal.nersc.gov/project/cosmo/temp/dstn/index-5200/LITE/"
+)
 ASTROMETRY_INDICES_URL_4100 = "https://data.astrometry.net/4100/"
 ASTROMETRY_INDICES_URL_4200 = "https://data.astrometry.net/4200/"
 

@@ -68,10 +68,7 @@ def sample_detections() -> list[Detection]:
     data_file = TEST_DATA_DIR / "x_y_counts_1024_1024.txt"
     data = np.loadtxt(data_file, delimiter="\t", dtype=float)
 
-    return [
-        Detection(x=row[0], y=row[1], flux=row[2])
-        for row in data
-    ]
+    return [Detection(x=row[0], y=row[1], flux=row[2]) for row in data]
 
 
 @pytest.fixture

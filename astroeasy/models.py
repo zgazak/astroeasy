@@ -1,6 +1,6 @@
 """Data models for astrometry.net plate solving."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -190,3 +190,18 @@ class SolveResult:
     matched_stars: list[MatchedStar]
     detections: list[Detection]
     image_metadata: ImageMetadata
+
+
+@dataclass
+class AggressiveSolveResult:
+    """Result of an aggressive plate-solving attempt that tries multiple max_sources values.
+
+    Attributes:
+        result: The final SolveResult (successful or last failed attempt).
+        attempts: List of (max_sources, success) tuples for each attempt made.
+        successful_max_sources: The max_sources value that succeeded, or None if all failed.
+    """
+
+    result: SolveResult
+    attempts: list[tuple[int, bool]]
+    successful_max_sources: int | None

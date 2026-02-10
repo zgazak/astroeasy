@@ -23,10 +23,13 @@ Example:
 
 from importlib.metadata import version
 
+from astroeasy.catalog import query_gaia_field
+from astroeasy.catalog.gaia import CatalogStar, get_field_bounds_from_wcs
 from astroeasy.config import AstrometryConfig
 from astroeasy.constants import AstrometryIndexSeries
 from astroeasy.indices import download_indices, examine_indices
 from astroeasy.models import (
+    AggressiveSolveResult,
     Detection,
     ImageMetadata,
     MatchedStar,
@@ -34,7 +37,13 @@ from astroeasy.models import (
     WCSResult,
     WCSStatus,
 )
-from astroeasy.runner import solve_field, test_install
+from astroeasy.plotting import plot_solved_field, zscale
+from astroeasy.runner import (
+    solve_field,
+    solve_field_aggressive,
+    solve_field_image,
+    test_install,
+)
 
 __version__ = version("astroeasy")
 
@@ -42,6 +51,8 @@ __all__ = [
     # Configuration
     "AstrometryConfig",
     # Models
+    "AggressiveSolveResult",
+    "CatalogStar",
     "Detection",
     "ImageMetadata",
     "MatchedStar",
@@ -52,7 +63,15 @@ __all__ = [
     "AstrometryIndexSeries",
     # Functions
     "solve_field",
+    "solve_field_aggressive",
+    "solve_field_image",
     "test_install",
     "examine_indices",
     "download_indices",
+    # Plotting
+    "plot_solved_field",
+    "zscale",
+    # Catalog
+    "query_gaia_field",
+    "get_field_bounds_from_wcs",
 ]

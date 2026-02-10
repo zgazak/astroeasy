@@ -72,9 +72,7 @@ class TestGetExpectedStructure:
 
     def test_combined_series(self):
         """Test getting structure for combined series."""
-        urls, structure = get_expected_structure(
-            AstrometryIndexSeries.SERIES_5200_LITE_4100
-        )
+        urls, structure = get_expected_structure(AstrometryIndexSeries.SERIES_5200_LITE_4100)
         assert len(urls) == 2
         # Should have files from both series
         has_5200 = any("5200" in f for f in structure.keys())

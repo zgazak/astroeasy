@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 from astropy.io import fits
-from astropy.wcs import WCS
 
 from astroeasy.config import AstrometryConfig
 from astroeasy.dotnet.docker import run_against_container
@@ -113,17 +112,19 @@ def _read_wcs_result(wcs_path: Path) -> WCSResult:
 def _read_matched_stars(
     temp_path: Path,
     wcs_result: WCSResult,
+    base_name: str = "sources",
 ) -> list[MatchedStar]:
     """Read matched stars from astrometry.net output.
 
     Args:
         temp_path: Directory containing astrometry.net output files.
         wcs_result: WCS solution for coordinate conversion.
+        base_name: Base filename (e.g., "sources" or "image").
 
     Returns:
         List of MatchedStar instances.
     """
-    rdls_path = temp_path / "sources.rdls"
+    rdls_path = temp_path / f"{base_name}.rdls"
     if not rdls_path.exists():
         return []
 
@@ -184,6 +185,180 @@ def _write_existing_wcs(wcs: WCSResult, output_path: Path) -> None:
     hdul.writeto(output_path, overwrite=True)
 
 
+def _copy_output_files(temp_path: Path, output_dir: Path, base_name: str) -> None:
+    """Copy astrometry.net output files to the output directory.
+
+    Args:
+        temp_path: Temporary directory containing output files.
+        output_dir: Destination directory for output files.
+        base_name: Base filename (e.g., "sources" or "image").
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Common astrometry.net output extensions
+    extensions = [
+        ".wcs",  # WCS solution
+        ".rdls",  # RA/Dec list of matched stars
+        ".match",  # Match file
+        ".corr",  # Correspondences
+        ".solved",  # Solved marker
+        "-indx.xyls",  # Index stars in image coords
+        ".axy",  # Augmented XY list
+        "-ngc.png",  # NGC overlay (if plots enabled)
+        "-objs.png",  # Objects plot (if plots enabled)
+    ]
+
+    copied_files = []
+    for ext in extensions:
+        src = temp_path / f"{base_name}{ext}"
+        if src.exists():
+            dst = output_dir / src.name
+            shutil.copy2(src, dst)
+            copied_files.append(src.name)
+
+    # Also copy any other FITS files that were created
+    for fits_file in temp_path.glob("*.fits"):
+        if fits_file.name != f"{base_name}.fits":  # Don't copy input file
+            dst = output_dir / fits_file.name
+            shutil.copy2(fits_file, dst)
+            copied_files.append(fits_file.name)
+
+    if copied_files:
+        logger.info(f"Copied output files to {output_dir}: {copied_files}")
+
+
+def solve_field_image(
+    image_path: Path,
+    config: AstrometryConfig,
+    existing_wcs: WCSResult | None = None,
+) -> SolveResult:
+    """Solve astrometry directly from a FITS image file.
+
+    This lets astrometry.net handle source extraction, which is more robust
+    than simple threshold-based extraction.
+
+    Args:
+        image_path: Path to the FITS image file.
+        config: Astrometry configuration.
+        existing_wcs: Optional existing WCS to verify/refine.
+
+    Returns:
+        SolveResult with WCS solution and matched stars if successful.
+    """
+    logger.info(f"Attempting astrometric solution on image: {image_path.name}")
+
+    # Read image metadata
+    with fits.open(image_path) as hdul:
+        for hdu in hdul:
+            if hdu.data is not None and len(hdu.data.shape) == 2:
+                height, width = hdu.data.shape
+                break
+        else:
+            raise ValueError("No 2D image data found in FITS file")
+
+    image_metadata = ImageMetadata(width=width, height=height)
+
+    # Determine runner and indices path
+    if config.docker_image:
+        runner = run_against_container
+        indices_path = "/usr/local/astrometry/data"
+    else:
+        runner = run_against_local
+        indices_path = str(config.indices_path)
+
+    temp_dir = tempfile.mkdtemp()
+    try:
+        temp_path = Path(temp_dir)
+
+        # Copy image to temp directory
+        image_name = "image.fits"
+        shutil.copy(image_path, temp_path / image_name)
+
+        # Write astrometry config
+        _write_astrometry_cfg(config, indices_path, temp_path / "astrometry.cfg")
+
+        # Build width/height arguments
+        width_height_args = f" --width {width} --height {height}"
+
+        tweak_order = config.tweak_order
+        if tweak_order > 0:
+            tweak_command = f" --tweak-order {tweak_order}"
+        else:
+            tweak_command = " --no-tweak"
+
+        if existing_wcs is not None:
+            # Verify existing WCS
+            wcs_file = temp_path / "image.wcs"
+            _write_existing_wcs(existing_wcs, wcs_file)
+            solve_field_command = None
+        else:
+            # Build solve-field command - let astrometry.net extract sources
+            solve_field_command = (
+                f"timeout {config.cpulimit_seconds}s solve-field {image_name} "
+                f"--config astrometry.cfg --continue"
+            )
+            solve_field_command += width_height_args
+
+            # Add position hint if available (could be extracted from FITS header)
+            # For now, skip hints - could be added later
+
+            solve_field_command += " --crpix-center --overwrite --scale-units degw"
+            solve_field_command += f" --scale-low {config.min_width_degrees}"
+            solve_field_command += f" --scale-high {config.max_width_degrees}"
+            solve_field_command += f" --continue --cpulimit {config.cpulimit_seconds}"
+            solve_field_command += " --no-plots --downsample 2"
+            solve_field_command += tweak_command
+
+        # Build verification command
+        verify_command = (
+            f"solve-field --verify image.wcs {image_name}{tweak_command} "
+            f"--tag-all --continue --no-plots"
+            + width_height_args
+        )
+
+        # Run solver
+        if config.docker_image:
+            success = runner(
+                solve_field_command,
+                temp_path,
+                config.indices_path,
+                config.docker_image,
+                verify_command,
+                config.output_dir,
+            )
+        else:
+            success = runner(solve_field_command, temp_path, verify_command)
+
+        if success:
+            wcs_result = _read_wcs_result(temp_path / "image.wcs")
+            matched_stars = _read_matched_stars(temp_path, wcs_result, base_name="image")
+            status = WCSStatus.SUCCESS
+        else:
+            wcs_result = None
+            matched_stars = []
+            status = WCSStatus.FAILED
+
+        # Copy output files if output_dir is specified
+        if config.output_dir:
+            _copy_output_files(temp_path, config.output_dir, base_name="image")
+
+        return SolveResult(
+            success=success,
+            status=status,
+            wcs=wcs_result,
+            matched_stars=matched_stars,
+            detections=[],  # No pre-extracted detections in image mode
+            image_metadata=image_metadata,
+        )
+
+    finally:
+        # Cleanup
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception as e:
+            logger.warning(f"Failed to cleanup temporary directory {temp_dir}: {e}")
+
+
 def solve_field(
     detections: list[Detection],
     image_metadata: ImageMetadata,
@@ -201,7 +376,10 @@ def solve_field(
     Returns:
         SolveResult with WCS solution and matched stars if successful.
     """
-    logger.info(f"Attempting astrometric solution on {len(detections)} sources")
+    sources_to_use = min(len(detections), config.max_sources)
+    logger.info(
+        f"Attempting astrometric solution using {sources_to_use} of {len(detections)} sources"
+    )
 
     # Determine runner and indices path
     if config.docker_image:
@@ -255,7 +433,9 @@ def solve_field(
             solve_field_command += " --crpix-center --overwrite --scale-units degw"
             solve_field_command += f" --scale-low {config.min_width_degrees}"
             solve_field_command += f" --scale-high {config.max_width_degrees}"
-            solve_field_command += f" --continue --cpulimit {config.cpulimit_seconds} --sort-column FLUX"
+            solve_field_command += (
+                f" --continue --cpulimit {config.cpulimit_seconds} --sort-column FLUX"
+            )
             solve_field_command += " --no-plots"
             solve_field_command += tweak_command
 
@@ -286,6 +466,10 @@ def solve_field(
             wcs_result = None
             matched_stars = []
             status = WCSStatus.FAILED
+
+        # Copy output files if output_dir is specified
+        if config.output_dir:
+            _copy_output_files(temp_path, config.output_dir, base_name="sources")
 
         return SolveResult(
             success=success,

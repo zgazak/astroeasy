@@ -27,9 +27,7 @@ class TestSolveFieldBasic:
         assert result.detections == minimal_detections
         assert result.image_metadata == sample_metadata
 
-    def test_result_contains_input_data(
-        self, sample_detections, sample_metadata, local_config
-    ):
+    def test_result_contains_input_data(self, sample_detections, sample_metadata, local_config):
         """Test that result contains the input detections and metadata."""
         # Use a very short timeout so it fails quickly
         config = AstrometryConfig(

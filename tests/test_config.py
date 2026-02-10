@@ -122,9 +122,7 @@ cpulimit_seconds: 120
 min_width_degrees: 1.0
 max_width_degrees: 20.0
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             yaml_path = Path(f.name)
 
